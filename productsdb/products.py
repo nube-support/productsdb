@@ -2,7 +2,8 @@ import argparse
 import sqlite3
 from datetime import datetime
 import os
-#db_path = '/home/testbench/product_database/products_test.db'  # Specify the full path to the database
+
+db_path = ''  # Specify the full path to the database
 
 PRODUCTS_WITH_OWN_LORAID = ['ME', 'THL', 'THLM', 'DL', 'TH']
 
