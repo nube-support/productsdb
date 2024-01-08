@@ -4,6 +4,7 @@ from datetime import datetime
 import os
 db_path = '/home/testbench/product_database/products_test.db'  # Specify the full path to the database
 
+PRODUCTS_WITH_OWN_LORAID = ['ME', 'THL', 'THLM', 'DL', 'TH']
 
 def get_next_serial(cursor):
     cursor.execute("SELECT LoraID FROM products WHERE MAKE = 'RC' ORDER BY LoraID DESC LIMIT 1;")
@@ -47,47 +48,20 @@ def create_db():
         conn.commit()
         conn.close()
 
-
-def add_product(manufacturing_order, make, model, variant, bar_code_id, testing_date_code, serial_number, hardware_version, hardware_batch,
-                software_version, technician, test_date, passed_all_tests, comments):
-    global db_path
-    conn = sqlite3.connect(db_path)
-    c = conn.cursor()
-
-    c.execute('''
-        INSERT INTO products (
-            ManufacturingOrder,
-            Make,
-            Model,
-            Variant,
-            LoraID,
-            TestingDateCode,
-            SerialNumber,
-            HardwareVersion,
-            HardwareBatch,
-            SoftwareVersion,
-            Technician,
-            TestDate,
-            PassedAllTests,
-            Comments
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ''', (manufacturing_order, make, model, variant, bar_code_id, testing_date_code, serial_number, hardware_version, hardware_batch,
-          software_version, technician, test_date, passed_all_tests, comments))
-
-    conn.commit()
-    conn.close()
-
-
-def add_product(manufacturing_order, make, model, variant, serial_number, hardware_version, hardware_batch,
+def add_product(manufacturing_order, make, model, variant, lora_id, serial_number, hardware_version, hardware_batch,
                 software_version, technician, passed_all_tests, comments):
     global db_path
     conn = sqlite3.connect(db_path)
     c = conn.cursor()
-    lora_id = get_next_serial(c)
+
+    # if lora_id is none it means the product needs a serial number to be generated (ex: RC's)
+    if(lora_id == None):
+        lora_id = get_next_serial(c)
+        lora_id = format(lora_id, '08X')  # Convert serial_id to 8-digit hexadecimal
+
     current_date = datetime.now()
     testing_date_code = hardware_batch
-    bar_code_id_hex = format(lora_id, '08X')  # Convert serial_id to 8-digit hexadecimal
-    barcode_number = f'{make}-{model}-{bar_code_id_hex}'
+    barcode_number = f'{make}-{model}-{lora_id}'
         
     #barcode_number = f'{make}-{model}-{serial_number}'
     test_date = current_date.strftime('%Y-%m-%d %H:%M:%S')
@@ -122,8 +96,9 @@ def update_product(new_manufacturing_order, barcode, new_serial_number, new_hard
     c = conn.cursor()
 
     # Split the barcode and extract the necessary fields to identify the record
-    make, model, serial_id_hex = barcode.split('-')
-    serial_id = int(serial_id_hex, 16)
+    make, model, lora_id = barcode.split('-')
+    if(make not in PRODUCTS_WITH_OWN_LORAID):
+        lora_id = int(lora_id, 16)
 
     # Update the product in the database
     c.execute('''
@@ -137,7 +112,7 @@ def update_product(new_manufacturing_order, barcode, new_serial_number, new_hard
             PassedAllTests = ?,
             Comments = ?
         WHERE Make = ? AND Model = ? AND LoraID = ?
-    ''', (new_serial_number, new_manufacturing_order, new_hardware_version, new_hardware_batch, new_software_version, new_technician, new_passed_all_tests, new_comments, make, model, serial_id))
+    ''', (new_serial_number, new_manufacturing_order, new_hardware_version, new_hardware_batch, new_software_version, new_technician, new_passed_all_tests, new_comments, make, model, lora_id))
 
     conn.commit()
     conn.close()
@@ -243,8 +218,14 @@ def get_report_data_by_work_order(work_order):
         serial_id_int = product[5]
         comments = product[14]
 
-        bar_code_id_hex = format(serial_id_int, '08X')  # Convert serial_id to 8-digit hexadecimal
-        barcode_number_and_test_info = f'{make}-{model}-{bar_code_id_hex}\t{comments}\tTRUE'
+        # check if product had a generated serial number and if we need to convert it to hex
+        if(make not in PRODUCTS_WITH_OWN_LORAID):
+            bar_code_id_hex = format(serial_id_int, '08X')  # Convert serial_id to 8-digit hexadecimal
+            barcode_number_and_test_info = f'{make}-{model}-{bar_code_id_hex}\t{comments}\tTRUE'
+        else:
+            # product with a non generated serial (ex: microedge)
+            barcode_number_and_test_info = f'{make}-{model}-{serial_id_int}\t{comments}\tTRUE'
+
         print(barcode_number_and_test_info)
         lines.append(barcode_number_and_test_info)
 
@@ -282,13 +263,15 @@ def get_product(barcode):
     try:
         # Split the barcode and extract the necessary fields to identify the record
         make, model, lora_id = barcode.split('-')
-        barcode_int = int(lora_id, 16)  # Convert hex to int
+        
+        if(make not in PRODUCTS_WITH_OWN_LORAID):
+            lora_id = int(lora_id, 16)  # Convert hex to int
 
         # Query the database to find the product
         c.execute('''
             SELECT * FROM products
             WHERE Make = ? AND Model = ? AND LoraID = ?
-        ''', (make, model, barcode_int))
+        ''', (make, model, lora_id))
 
         product = c.fetchone()
     finally:
@@ -304,13 +287,14 @@ def delete_product(barcode):
     try:
         # Split the barcode and extract the necessary fields to identify the record
         make, model, lora_id = barcode.split('-')
-        barcode_int = int(lora_id, 16)  # Convert hex to int
+        if(make not in PRODUCTS_WITH_OWN_LORAID):
+            lora_id = int(lora_id, 16)  # Convert hex to int
 
         # Delete the record from the database
         c.execute('''
             DELETE FROM products
             WHERE Make = ? AND Model = ? AND LoraID = ?
-        ''', (make, model, barcode_int))
+        ''', (make, model, lora_id))
 
         # Commit the changes
         conn.commit()
