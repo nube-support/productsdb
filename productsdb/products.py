@@ -2,9 +2,13 @@ import argparse
 import sqlite3
 from datetime import datetime
 import os
-db_path = '/home/testbench/product_database/products_test.db'  # Specify the full path to the database
+#db_path = '/home/testbench/product_database/products_test.db'  # Specify the full path to the database
 
 PRODUCTS_WITH_OWN_LORAID = ['ME', 'THL', 'THLM', 'DL', 'TH']
+
+def init_db_path(path):
+    global db_path
+    db_path = path
 
 def get_next_serial(cursor):
     cursor.execute("SELECT LoraID FROM products WHERE MAKE = 'RC' ORDER BY LoraID DESC LIMIT 1;")

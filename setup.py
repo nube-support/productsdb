@@ -1,8 +1,9 @@
 # setup.py
 from setuptools import setup, find_packages
+from productsdb import __version__
 
 setup(
     name='productsdb',
-    version='0.1',
+    version=__version__,
     packages=find_packages(),
 )
