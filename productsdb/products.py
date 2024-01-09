@@ -61,12 +61,12 @@ def add_product(manufacturing_order, make, model, variant, lora_id, serial_numbe
 
     # if lora_id is none it means the product needs a serial number to be generated (ex: RC's)
     if(lora_id == None):
-        lora_id = get_next_serial(c)
-        lora_id = format(lora_id, '08X')  # Convert serial_id to 8-digit hexadecimal
+        lora_id_int = get_next_serial(c)
+        lora_id_hex = format(lora_id_int, '08X')  # Convert serial_id to 8-digit hexadecimal
 
     current_date = datetime.now()
     testing_date_code = hardware_batch
-    barcode_number = f'{make}-{model}-{lora_id}'
+    barcode_number = f'{make}-{model}-{lora_id_hex}'
         
     #barcode_number = f'{make}-{model}-{serial_number}'
     test_date = current_date.strftime('%Y-%m-%d %H:%M:%S')
@@ -87,7 +87,7 @@ def add_product(manufacturing_order, make, model, variant, lora_id, serial_numbe
              PassedAllTests,
              Comments
          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-     ''', (manufacturing_order, make, model, variant, lora_id, testing_date_code, serial_number, hardware_version, hardware_batch,
+     ''', (manufacturing_order, make, model, variant, lora_id_int, testing_date_code, serial_number, hardware_version, hardware_batch,
            software_version, technician, test_date, passed_all_tests, comments))
 
     conn.commit()
