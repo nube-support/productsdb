@@ -259,6 +259,21 @@ def get_products_by_technician(technician):
 
     return products
 
+def get_products_by_loraid(lora_id):
+    global db_path
+    conn = sqlite3.connect(db_path)
+    c = conn.cursor()
+
+    # Query the database to find products with the specified TestingDateCode
+    c.execute('''
+        SELECT * FROM products
+        WHERE LoraID = ?
+    ''', (lora_id,))
+
+    products = c.fetchall()
+    conn.close()
+
+    return products
 
 def get_product(barcode):
     global db_path
