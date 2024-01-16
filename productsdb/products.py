@@ -59,10 +59,14 @@ def add_product(manufacturing_order, make, model, variant, lora_id, serial_numbe
     conn = sqlite3.connect(db_path)
     c = conn.cursor()
 
+    lora_id_hex = ''
     # if lora_id is none it means the product needs a serial number to be generated (ex: RC's)
     if(lora_id == None):
         lora_id_int = get_next_serial(c)
         lora_id_hex = format(lora_id_int, '08X')  # Convert serial_id to 8-digit hexadecimal
+
+    if(lora_id_hex == ''):
+        lora_id_hex = lora_id
 
     current_date = datetime.now()
     testing_date_code = hardware_batch
