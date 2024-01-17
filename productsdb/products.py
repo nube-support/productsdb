@@ -109,6 +109,9 @@ def update_product(new_manufacturing_order, barcode, new_serial_number, new_hard
     make, model, lora_id = barcode.split('-')
     if(make not in PRODUCTS_WITH_OWN_LORAID):
         lora_id = int(lora_id, 16)
+    
+    current_date = datetime.now()
+    new_test_date = current_date.strftime('%Y-%m-%d %H:%M:%S')
 
     # Update the product in the database
     c.execute('''
@@ -119,10 +122,11 @@ def update_product(new_manufacturing_order, barcode, new_serial_number, new_hard
             HardwareBatch = ?,
             SoftwareVersion = ?,
             Technician = ?,
+            TestDate = ?,
             PassedAllTests = ?,
             Comments = ?
         WHERE Make = ? AND Model = ? AND LoraID = ?
-    ''', (new_serial_number, new_manufacturing_order, new_hardware_version, new_hardware_batch, new_software_version, new_technician, new_passed_all_tests, new_comments, make, model, lora_id))
+    ''', (new_serial_number, new_manufacturing_order, new_hardware_version, new_hardware_batch, new_software_version, new_technician, new_test_date, new_passed_all_tests, new_comments, make, model, lora_id))
 
     conn.commit()
     conn.close()
